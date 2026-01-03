@@ -20,9 +20,13 @@ export const api = {
         const headers: HeadersInit = {
             "Content-Type": "application/json",
         }
-        const token = localStorage.getItem("pos-token")
-        if (token) {
-            headers["Authorization"] = `Bearer ${token}`
+
+        // Only access localStorage on the client
+        if (typeof window !== "undefined") {
+            const token = localStorage.getItem("pos-token")
+            if (token) {
+                headers["Authorization"] = `Bearer ${token}`
+            }
         }
         return headers
     },

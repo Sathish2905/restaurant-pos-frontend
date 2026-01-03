@@ -51,15 +51,15 @@ A modern, production-ready Restaurant Point of Sale system built with Next.js 14
 
 ### Admin
 - Email: admin@restaurant.com
-- Password: admin123
+- Password: password123
 
 ### Cashier
 - Email: cashier@restaurant.com
-- Password: cashier123
+- Password: password123
 
 ### Kitchen Staff
 - Email: kitchen@restaurant.com
-- Password: kitchen123
+- Password: password123
 
 ## Project Structure
 
@@ -128,8 +128,6 @@ Edit the color tokens in `app/globals.css`:
 ### Tax Rate
 Update the `TAX_RATE` constant in `components/pos/cart.tsx`
 
-### Menu Categories
-Modify `mockCategories` in `lib/mock-data.ts`
 
 ## Deployment
 
@@ -154,5 +152,4 @@ The application will be built and ready for production deployment.
 - [ ] Order history and search
 
 ## License
-
-This is a demonstration project built with v0.
+MIT

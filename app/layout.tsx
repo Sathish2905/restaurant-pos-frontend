@@ -8,30 +8,29 @@ import { ThemeProvider } from "@/lib/theme-provider"
 
 import { SettingsProvider } from "@/lib/settings-context"
 
+import { api } from "@/lib/api"
+
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "Restaurant POS System",
-  description: "Modern Restaurant Point of Sale System",
-  generator: "v0.app",
-  icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await api.getSettings()
+  const restaurantName = settings.find((s) => s.key === "restaurant_name")?.value || "Restaurant POS"
+  const restaurantDescription = settings.find((s) => s.key === "restaurant_description")?.value || "Modern Restaurant Point of Sale System"
+
+  return {
+    title: restaurantName,
+    description: restaurantDescription,
+    generator: "Sathish2905",
+    icons: {
+      icon: [
+        {
+          url: "/restaurant-icon.png",
+        },
+      ],
+      apple: "/restaurant-icon.png",
+    },
+  }
 }
 
 export default function RootLayout({
