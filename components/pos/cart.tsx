@@ -138,7 +138,7 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
 
   return (
     <>
-      <Card className="w-[400px] border-l rounded-none flex flex-col h-full">
+      <Card className="w-[600px] border-l rounded-none flex flex-col h-full">
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
