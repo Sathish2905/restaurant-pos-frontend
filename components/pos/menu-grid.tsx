@@ -1,0 +1,106 @@
+"use client"
+
+import { useState } from "react"
+import Image from "next/image"
+import { Search } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { type MenuItem, type Category } from "@/lib/types"
+
+interface MenuGridProps {
+  items: MenuItem[]
+  categories: Category[]
+  selectedCategory: string
+  onCategoryChange: (category: string) => void
+  onAddToCart: (item: MenuItem & { quantity: number }) => void
+}
+
+export function MenuGrid({ items, categories, selectedCategory, onCategoryChange, onAddToCart }: MenuGridProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const filteredItems = items.filter((item) => {
+    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search menu items..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Category Filter */}
+      <div className="flex gap-2 flex-wrap">
+        <Button
+          variant={selectedCategory === "All" ? "default" : "outline"}
+          onClick={() => onCategoryChange("All")}
+          size="sm"
+        >
+          All Items
+        </Button>
+        {categories.map((category) => (
+          <Button
+            key={category.id}
+            variant={selectedCategory === category.name ? "default" : "outline"}
+            onClick={() => onCategoryChange(category.name)}
+            size="sm"
+          >
+            <span className="mr-1.5">{category.icon}</span>
+            {category.name}
+          </Button>
+        ))}
+      </div>
+
+      {/* Menu Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredItems.map((item) => (
+          <Card
+            key={item.id}
+            className={cn(
+              "cursor-pointer hover:shadow-lg transition-shadow",
+              !item.available && "opacity-60 cursor-not-allowed grayscale-[0.5]"
+            )}
+            onClick={() => item.available && onAddToCart({ ...item, quantity: 1 })}
+          >
+            <CardContent className="p-0">
+              <div className="relative aspect-square bg-muted rounded-t-lg overflow-hidden">
+                <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+                {!item.available && (
+                  <Badge className="absolute top-2 right-2" variant="destructive">
+                    Out of Stock
+                  </Badge>
+                )}
+              </div>
+              <div className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-sm leading-tight line-clamp-2">{item.name}</h3>
+                  <Badge variant="secondary" className="shrink-0">
+                    ${item.price.toFixed(2)}
+                  </Badge>
+                </div>
+                {item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredItems.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No items found</p>
+        </div>
+      )}
+    </div>
+  )
+}
