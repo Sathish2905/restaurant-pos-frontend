@@ -5,7 +5,8 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth, getRedirectPath } from "@/lib/auth-context"
+import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,7 +30,13 @@ export default function LoginPage() {
     const success = await login(email, password)
 
     if (success) {
-      router.push("/dashboard")
+      // Re-fetch user to get correct role for redirection
+      const user = await api.getMe()
+      if (user) {
+        router.push(getRedirectPath(user.role))
+      } else {
+        router.push("/dashboard")
+      }
     } else {
       setError("Invalid email or password")
     }

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useSettings } from "@/lib/settings-context"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Bell, LogOut, Settings, User as UserIcon } from "lucide-react"
+import { Bell, LogOut, Settings, User as UserIcon, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-export function Navbar() {
+export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { getSetting } = useSettings()
@@ -34,6 +34,9 @@ export function Navbar() {
     <header className="sticky top-0 z-40 border-b bg-card w-full">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="mr-2">
+            <Menu className="h-5 w-5 text-muted-foreground" />
+          </Button>
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-primary leading-none">{restaurantName}</h1>
             <div className="flex items-center gap-2 mt-1">

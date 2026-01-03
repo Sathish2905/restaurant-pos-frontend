@@ -90,6 +90,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>{children}</AuthContext.Provider>
 }
 
+export function getRedirectPath(role: UserRole): string {
+  switch (role) {
+    case "admin":
+      return "/dashboard"
+    case "cashier":
+    case "staff":
+      return "/pos"
+    case "kitchen":
+      return "/kitchen"
+    default:
+      return "/login"
+  }
+}
+
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {

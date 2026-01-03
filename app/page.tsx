@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth, getRedirectPath } from "@/lib/auth-context"
 import { Loader2 } from "lucide-react"
 
 export default function Home() {
@@ -12,13 +12,7 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        if (user.role === "admin") {
-          router.push("/dashboard")
-        } else if (user.role === "cashier") {
-          router.push("/pos")
-        } else if (user.role === "kitchen") {
-          router.push("/kitchen")
-        }
+        router.push(getRedirectPath(user.role))
       } else {
         router.push("/login")
       }

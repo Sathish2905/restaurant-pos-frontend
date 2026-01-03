@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { type MenuItem, type Category } from "@/lib/types"
+import { useSettings } from "@/lib/settings-context"
 
 interface MenuGridProps {
   items: MenuItem[]
@@ -20,6 +21,8 @@ interface MenuGridProps {
 
 export function MenuGrid({ items, categories, selectedCategory, onCategoryChange, onAddToCart }: MenuGridProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const { getSetting } = useSettings()
+  const showImages = getSetting("pos_image_preview") !== "false"
 
   const filteredItems = items.filter((item) => {
     const matchesCategory = selectedCategory === "All" || item.category === selectedCategory
@@ -74,17 +77,26 @@ export function MenuGrid({ items, categories, selectedCategory, onCategoryChange
             onClick={() => item.available && onAddToCart({ ...item, quantity: 1 })}
           >
             <CardContent className="p-0">
-              <div className="relative aspect-square bg-muted rounded-t-lg overflow-hidden">
-                <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
-                {!item.available && (
-                  <Badge className="absolute top-2 right-2" variant="destructive">
-                    Out of Stock
-                  </Badge>
-                )}
-              </div>
+              {showImages && (
+                <div className="relative aspect-square bg-muted rounded-t-lg overflow-hidden">
+                  <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+                  {!item.available && (
+                    <Badge className="absolute top-2 right-2" variant="destructive">
+                      Out of Stock
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-sm leading-tight line-clamp-2">{item.name}</h3>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="font-semibold text-sm leading-tight line-clamp-2">{item.name}</h3>
+                    {!showImages && !item.available && (
+                      <Badge variant="destructive" className="w-fit text-[10px] h-4 px-1">
+                        Out of Stock
+                      </Badge>
+                    )}
+                  </div>
                   <Badge variant="secondary" className="shrink-0">
                     ${item.price.toFixed(2)}
                   </Badge>

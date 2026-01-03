@@ -29,6 +29,20 @@ export default function SettingsPage() {
     setIsLoading(true)
     try {
       const data = await api.getSettings()
+
+      // Ensure pos_image_preview exists
+      const hasImageSetting = data.some(s => s.key === "pos_image_preview")
+      if (!hasImageSetting) {
+        data.push({
+          id: "const-show-images",
+          key: "pos_image_preview",
+          value: "true",
+          category: "POS Display",
+          type: "boolean",
+          description: "Show product images in the POS menu grid"
+        })
+      }
+
       setSettings(data)
     } catch (error) {
       toast.error("Failed to load settings")

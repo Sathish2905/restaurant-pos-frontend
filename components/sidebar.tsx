@@ -41,7 +41,7 @@ const kitchenLinks = [{ href: "/kitchen", label: "Kitchen Display", icon: ChefHa
 
 import { useSettings } from "@/lib/settings-context"
 
-export function Sidebar() {
+export function Sidebar({ isOpen }: { isOpen: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user } = useAuth()
@@ -51,18 +51,11 @@ export function Sidebar() {
   const links = user?.role === "admin" ? adminLinks : user?.role === "cashier" ? cashierLinks : kitchenLinks
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-card">
-      <div className="flex h-16 items-center gap-3 border-b px-6">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
-          <Store className="h-5 w-5 text-primary-foreground" />
-        </div>
-        <div className="min-w-0">
-          <h2 className="font-bold text-base leading-none truncate text-primary">{restaurantName}</h2>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 font-medium">{user?.role}</p>
-        </div>
-      </div>
-
-      <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+    <div className={cn(
+      "flex h-full flex-col border-r bg-card transition-all duration-300 ease-in-out shrink-0",
+      isOpen ? "w-64" : "w-0 overflow-hidden border-none"
+    )}>
+      <nav className="flex-1 space-y-1 p-4 overflow-y-auto pt-4">
         {links.map((link) => {
           const Icon = link.icon
           return (
