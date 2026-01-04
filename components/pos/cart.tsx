@@ -1,14 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Minus, Plus, Trash2, Receipt, MapPin } from "lucide-react"
+import { Minus, Plus, Trash2, Receipt, MapPin, User, Phone, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { CartItem, Table, Floor, Order } from "@/lib/types"
+import type { CartItem, Table, Floor, Order, OrderType } from "@/lib/types"
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -40,6 +45,14 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
   const [showCheckout, setShowCheckout] = useState(false)
   const [showReceipt, setShowReceipt] = useState(false)
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
+
+  const [orderType, setOrderType] = useState<OrderType>(
+    (editingOrder?.type as OrderType) || (selectedTable ? "dine-in" : "takeaway")
+  )
+  const [customerName, setCustomerName] = useState(editingOrder?.customerName || "")
+  const [customerPhone, setCustomerPhone] = useState(editingOrder?.deliveryPhone || "")
+  const [deliveryAddress, setDeliveryAddress] = useState(editingOrder?.deliveryAddress || "")
+
   const { user } = useAuth()
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -60,9 +73,13 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
       status: "new" as const,
       paymentStatus: "unpaid" as const,
       cashierName: user?.name || "Unknown",
-      tableId: selectedTable?.id,
-      tableNumber: selectedTable?.number,
-      floorName: selectedTable ? getFloorName(selectedTable.floorId) : undefined,
+      type: orderType,
+      customerName: orderType !== "dine-in" ? customerName : undefined,
+      deliveryPhone: orderType !== "dine-in" ? customerPhone : undefined,
+      deliveryAddress: orderType === "delivery" ? deliveryAddress : undefined,
+      tableId: orderType === "dine-in" ? selectedTable?.id : undefined,
+      tableNumber: orderType === "dine-in" ? selectedTable?.number : undefined,
+      floorName: orderType === "dine-in" && selectedTable ? getFloorName(selectedTable.floorId) : undefined,
     }
 
     if (editingOrder) {
@@ -139,27 +156,72 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
   return (
     <>
       <Card className="w-[600px] border-l rounded-none flex flex-col h-full">
-        <CardHeader className="border-b">
+        <CardHeader className="border-b space-y-4">
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
             {editingOrder ? "Update Order" : "Current Order"}
           </CardTitle>
-          <div className="pt-2">
-            <Button variant="outline" className="w-full justify-start bg-transparent" onClick={onSelectTable}>
-              <MapPin className="h-4 w-4 mr-2" />
-              {selectedTable ? (
-                <div className="flex items-center gap-2 flex-1 justify-between">
-                  <span>
-                    Table {selectedTable.number} - {getFloorName(selectedTable.floorId)}
-                  </span>
-                  <Badge variant="outline" className="capitalize">
-                    {selectedTable.capacity} seats
-                  </Badge>
+
+          <Tabs value={orderType} onValueChange={(v) => setOrderType(v as OrderType)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="dine-in">Dine In</TabsTrigger>
+              <TabsTrigger value="takeaway">Takeaway</TabsTrigger>
+              <TabsTrigger value="delivery">Delivery</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="space-y-3">
+            {orderType === "dine-in" ? (
+              <Button variant="outline" className="w-full justify-start bg-transparent" onClick={onSelectTable}>
+                <MapPin className="h-4 w-4 mr-2" />
+                {selectedTable ? (
+                  <div className="flex items-center gap-2 flex-1 justify-between text-left">
+                    <span className="truncate">
+                      Table {selectedTable.number} - {getFloorName(selectedTable.floorId)}
+                    </span>
+                    <Badge variant="outline" className="capitalize shrink-0">
+                      {selectedTable.capacity} seats
+                    </Badge>
+                  </div>
+                ) : (
+                  <span>Select Table</span>
+                )}
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <User className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Customer Name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Phone Number"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
-              ) : (
-                <span>Select Table</span>
-              )}
-            </Button>
+                {orderType === "delivery" && (
+                  <div className="relative">
+                    <Home className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Delivery Address"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -284,7 +346,16 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
             <DialogDescription>Review and confirm the order details</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {selectedTable && (
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="capitalize">
+                {orderType.replace("-", " ")}
+              </Badge>
+              {orderType !== "dine-in" && customerName && (
+                <span className="text-sm font-medium">{customerName}</span>
+              )}
+            </div>
+
+            {orderType === "dine-in" && selectedTable && (
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-sm font-medium">
                   Table {selectedTable.number} - {getFloorName(selectedTable.floorId)}
@@ -294,6 +365,24 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
                 </div>
               </div>
             )}
+
+            {(orderType === "takeaway" || orderType === "delivery") && (customerPhone || deliveryAddress) && (
+              <div className="p-3 bg-muted rounded-lg space-y-1">
+                {customerPhone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
+                    <span>{customerPhone}</span>
+                  </div>
+                )}
+                {orderType === "delivery" && deliveryAddress && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Home className="h-3 w-3 text-muted-foreground" />
+                    <span>{deliveryAddress}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               {cart.map((item) => (
                 <div key={item.id} className="flex justify-between text-sm">

@@ -88,10 +88,28 @@ export function ReceiptDialog({
                 </span>
               </div>
             )}
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Order Type:</span>
+              <Badge variant="outline" className="capitalize">
+                {(order.type || "dine-in").replace("-", " ")}
+              </Badge>
+            </div>
             {order.customerName && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Customer:</span>
                 <span>{order.customerName}</span>
+              </div>
+            )}
+            {order.deliveryPhone && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Phone:</span>
+                <span>{order.deliveryPhone}</span>
+              </div>
+            )}
+            {order.deliveryAddress && (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground">Delivery Address:</span>
+                <span className="pl-4">{order.deliveryAddress}</span>
               </div>
             )}
           </div>

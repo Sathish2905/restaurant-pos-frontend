@@ -72,9 +72,11 @@ export interface Reservation {
 }
 
 export type OrderStatus = "new" | "preparing" | "ready" | "completed"
+export type OrderType = "dine-in" | "takeaway" | "delivery"
 
 export interface Order {
     id: string
+    type: OrderType
     items: CartItem[]
     subtotal: number
     total: number

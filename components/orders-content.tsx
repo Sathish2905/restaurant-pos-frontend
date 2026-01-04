@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { type Order } from "@/lib/types"
 import { api } from "@/lib/api"
-import { Search, Eye, Plus, Receipt, Banknote, CheckCircle, Bike, Edit } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Search, Eye, Plus, Receipt, Banknote, CheckCircle, Bike, Edit, User, Phone, MapPin } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ReceiptDialog } from "@/components/receipt-dialog"
 import { Separator } from "@/components/ui/separator"
@@ -205,6 +206,7 @@ export function OrdersContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Order ID</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Table/Customer</TableHead>
                   <TableHead>Items</TableHead>
@@ -220,28 +222,41 @@ export function OrdersContent() {
                   const sourceBadge = getSourceBadge(order.source)
                   return (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell className="font-medium text-xs">{order.id}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={sourceBadge.color}>
+                        <Badge variant="secondary" className="capitalize text-[10px] h-5 px-1.5">
+                          {(order.type || "dine-in").replace("-", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5", sourceBadge.color)}>
                           {sourceBadge.icon} {sourceBadge.text}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {order.source === "swiggy" || order.source === "zomato" ? (
                           <div className="flex items-center gap-2">
-                            <Bike className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <div className="font-medium">{order.customerName || "Delivery"}</div>
-                              <div className="text-xs text-muted-foreground">{order.deliveryPhone}</div>
+                            <Bike className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-medium text-sm truncate">{order.customerName || "Delivery"}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">{order.deliveryPhone}</div>
                             </div>
                           </div>
-                        ) : order.tableNumber ? (
+                        ) : order.type === "dine-in" && order.tableNumber ? (
                           <div>
-                            <div className="font-medium">Table {order.tableNumber}</div>
-                            <div className="text-xs text-muted-foreground">{order.floorName}</div>
+                            <div className="font-medium text-sm">Table {order.tableNumber}</div>
+                            <div className="text-[10px] text-muted-foreground">{order.floorName}</div>
+                          </div>
+                        ) : (order.type === "takeaway" || order.type === "delivery") ? (
+                          <div className="flex items-center gap-2">
+                            {order.type === "delivery" ? <Bike className="h-4 w-4 text-muted-foreground shrink-0" /> : <User className="h-4 w-4 text-muted-foreground shrink-0" />}
+                            <div className="min-w-0">
+                              <div className="font-medium text-sm truncate">{order.customerName || "Customer"}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">{order.deliveryPhone}</div>
+                            </div>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground text-sm">-</span>
                         )}
                       </TableCell>
                       <TableCell>{order.items.length} items</TableCell>
@@ -317,20 +332,26 @@ export function OrdersContent() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">
-                    {selectedOrder.source === "swiggy" || selectedOrder.source === "zomato" ? "Delivery" : "Table"}
+                    {selectedOrder.type === "dine-in" ? "Table" : "Customer Area"}
                   </p>
                   <p className="font-medium">
-                    {selectedOrder.source === "swiggy" || selectedOrder.source === "zomato"
-                      ? selectedOrder.customerName
-                      : selectedOrder.tableNumber
+                    {selectedOrder.type === "dine-in"
+                      ? selectedOrder.tableNumber
                         ? `Table ${selectedOrder.tableNumber}`
-                        : "No table"}
+                        : "No table"
+                      : selectedOrder.customerName || "Customer"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <Badge variant="outline" className={getStatusColor(selectedOrder.status)}>
-                    {selectedOrder.status}
+                  <p className="text-sm font-medium text-muted-foreground">Order Type</p>
+                  <Badge variant="outline" className="capitalize">
+                    {(selectedOrder.type || "dine-in").replace("-", " ")}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Source</p>
+                  <Badge variant="outline" className={getSourceBadge(selectedOrder.source).color}>
+                    {getSourceBadge(selectedOrder.source).icon} {getSourceBadge(selectedOrder.source).text}
                   </Badge>
                 </div>
                 <div>
@@ -341,25 +362,33 @@ export function OrdersContent() {
                 </div>
               </div>
 
-              {(selectedOrder.source === "swiggy" || selectedOrder.source === "zomato") && (
+              {(selectedOrder.source === "swiggy" || selectedOrder.source === "zomato" || selectedOrder.type === "takeaway" || selectedOrder.type === "delivery") && (selectedOrder.customerName || selectedOrder.deliveryPhone || selectedOrder.deliveryAddress) && (
                 <div className="p-4 border rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 mb-3">
-                    <Bike className="h-4 w-4" />
-                    <p className="font-semibold">Delivery Information</p>
+                    {selectedOrder.type === "delivery" || selectedOrder.source !== "pos" ? <Bike className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                    <p className="font-semibold">
+                      {selectedOrder.type === "delivery" || selectedOrder.source !== "pos" ? "Delivery Details" : "Customer Details"}
+                    </p>
                   </div>
                   <div className="space-y-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Customer Name</p>
-                      <p className="font-medium">{selectedOrder.customerName}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Phone Number</p>
-                      <p className="font-medium">{selectedOrder.deliveryPhone}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Delivery Address</p>
-                      <p className="font-medium">{selectedOrder.deliveryAddress}</p>
-                    </div>
+                    {selectedOrder.customerName && (
+                      <div>
+                        <p className="text-muted-foreground">Customer Name</p>
+                        <p className="font-medium">{selectedOrder.customerName}</p>
+                      </div>
+                    )}
+                    {selectedOrder.deliveryPhone && (
+                      <div>
+                        <p className="text-muted-foreground">Phone Number</p>
+                        <p className="font-medium">{selectedOrder.deliveryPhone}</p>
+                      </div>
+                    )}
+                    {selectedOrder.deliveryAddress && (
+                      <div>
+                        <p className="text-muted-foreground">Delivery Address</p>
+                        <p className="font-medium">{selectedOrder.deliveryAddress}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
