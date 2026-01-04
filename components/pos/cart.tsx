@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { CartItem, Table, Floor, Order, OrderType } from "@/lib/types"
+import type { CartItem, Table, Floor, Order, OrderType, OrderStatus } from "@/lib/types"
 import {
   Tabs,
   TabsList,
@@ -59,18 +59,14 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
   const tax = subtotal * TAX_RATE
   const total = subtotal + tax - discount
 
-  const handleCheckout = () => {
-    setShowCheckout(true)
-  }
-
-  const handleCompleteOrder = async () => {
+  const handleCompleteOrder = async (status: OrderStatus = "new", options?: { print?: boolean; ebill?: boolean }) => {
     const orderData = {
       items: cart,
       subtotal,
       total,
       tax,
       discount,
-      status: "new" as const,
+      status,
       paymentStatus: "unpaid" as const,
       cashierName: user?.name || "Unknown",
       type: orderType,
@@ -82,45 +78,41 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
       floorName: orderType === "dine-in" && selectedTable ? getFloorName(selectedTable.floorId) : undefined,
     }
 
-    if (editingOrder) {
-      try {
-        const updatedOrder = await api.updateOrder(editingOrder.id, {
+    try {
+      let finalOrder: Order | null = null;
+      if (editingOrder) {
+        finalOrder = await api.updateOrder(editingOrder.id, {
           ...orderData,
           updatedAt: new Date(),
         })
-
-        if (updatedOrder) {
-          setCompletedOrder(updatedOrder)
-          setShowCheckout(false)
-          setShowReceipt(true)
-          onClearCart()
-          setDiscount(0)
+      } else {
+        finalOrder = await api.createOrder(orderData)
+        if (finalOrder && selectedTable && orderType === "dine-in") {
+          await api.updateTable(selectedTable.id, { status: "occupied" })
         }
-      } catch (error) {
-        console.error("Failed to update order", error)
-        alert("Failed to update order")
       }
-    } else {
-      try {
-        const newOrder = await api.createOrder(orderData)
 
-        if (newOrder) {
-          // Update table status to occupied if linked
-          if (selectedTable) {
-            await api.updateTable(selectedTable.id, { status: "occupied" })
-          }
-
-          setCompletedOrder(newOrder)
-          setShowCheckout(false)
+      if (finalOrder) {
+        if (options?.print) {
+          setCompletedOrder(finalOrder)
           setShowReceipt(true)
-          onClearCart()
-          setDiscount(0)
-          onRefreshData?.()
         }
-      } catch (error) {
-        console.error("Failed to create order", error)
-        alert("Failed to create order")
+
+        if (!options?.print) {
+          // If not printing, we just show a success message and clear
+          alert(`Order ${status === "held" ? "held" : "saved"} successfully!`)
+        }
+
+        onClearCart()
+        setDiscount(0)
+        setCustomerName("")
+        setCustomerPhone("")
+        setDeliveryAddress("")
+        onRefreshData?.()
       }
+    } catch (error) {
+      console.error("Order action failed", error)
+      alert("Action failed. Please try again.")
     }
   }
 
@@ -323,17 +315,36 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
             </div>
           </div>
 
-          <div className="w-full flex gap-2">
+          <div className="w-full grid grid-cols-4 gap-1">
+            <Button
+              className="flex-1 text-[10px] h-9 px-0"
+              onClick={() => handleCompleteOrder("new")}
+              disabled={cart.length === 0}
+            >
+              Save
+            </Button>
+            <Button
+              className="flex-1 text-[10px] h-9 px-0"
+              onClick={() => handleCompleteOrder("new", { print: true })}
+              disabled={cart.length === 0}
+            >
+              Save & Print
+            </Button>
             <Button
               variant="outline"
-              className="flex-1 bg-transparent"
+              className="flex-1 text-[10px] h-9 px-0 bg-transparent"
+              onClick={() => handleCompleteOrder("held")}
+              disabled={cart.length === 0}
+            >
+              Hold
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex-1 text-[10px] h-9 px-0 border"
               onClick={onClearCart}
               disabled={cart.length === 0}
             >
               Clear
-            </Button>
-            <Button className="flex-1" onClick={handleCheckout} disabled={cart.length === 0}>
-              {editingOrder ? "Update" : "Checkout"}
             </Button>
           </div>
         </CardFooter>
@@ -419,7 +430,7 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
             <Button variant="outline" onClick={() => setShowCheckout(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCompleteOrder}>{editingOrder ? "Update Order" : "Confirm Order"}</Button>
+            <Button onClick={() => handleCompleteOrder("new")}>{editingOrder ? "Update Order" : "Confirm Order"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

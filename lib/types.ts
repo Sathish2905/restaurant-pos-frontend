@@ -71,7 +71,7 @@ export interface Reservation {
     createdAt: Date
 }
 
-export type OrderStatus = "new" | "preparing" | "ready" | "completed"
+export type OrderStatus = "new" | "preparing" | "ready" | "completed" | "held"
 export type OrderType = "dine-in" | "takeaway" | "delivery"
 
 export interface Order {
