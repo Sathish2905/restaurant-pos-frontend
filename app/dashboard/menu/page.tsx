@@ -33,6 +33,7 @@ export default function MenuManagementPage() {
     name: "",
     categoryId: "",
     price: 0,
+    costOfGoods: 0,
     description: "",
     available: true,
   })
@@ -43,6 +44,10 @@ export default function MenuManagementPage() {
     name: "",
     icon: "🍽️",
   })
+
+  // Review Dialog State
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+  const [selectedItemReviews, setSelectedItemReviews] = useState<{ name: string, reviews: any[] }>({ name: "", reviews: [] })
 
   useEffect(() => {
     loadData()
@@ -67,6 +72,7 @@ export default function MenuManagementPage() {
       name: item.name,
       categoryId: category ? category.id : "",
       price: item.price,
+      costOfGoods: item.costOfGoods || 0,
       description: item.description || "",
       available: item.available,
     })
@@ -79,10 +85,19 @@ export default function MenuManagementPage() {
       name: "",
       categoryId: categories.length > 0 ? categories[0].id : "",
       price: 0,
+      costOfGoods: 0,
       description: "",
       available: true,
     })
     setIsDialogOpen(true)
+  }
+
+  const handleShowReviews = (item: MenuItem) => {
+    setSelectedItemReviews({
+      name: item.name,
+      reviews: item.reviews || []
+    })
+    setIsReviewDialogOpen(true)
   }
 
   const handleSave = async () => {
@@ -92,6 +107,7 @@ export default function MenuManagementPage() {
           name: formData.name,
           category: formData.categoryId,
           price: formData.price,
+          costOfGoods: formData.costOfGoods,
           description: formData.description,
           available: formData.available,
         } as any)
@@ -104,6 +120,7 @@ export default function MenuManagementPage() {
           name: formData.name,
           category: formData.categoryId,
           price: formData.price,
+          costOfGoods: formData.costOfGoods,
           description: formData.description,
           available: formData.available,
           image: "/placeholder.svg",
@@ -183,48 +200,62 @@ export default function MenuManagementPage() {
                   <TableHead>Item</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Cost</TableHead>
+                  <TableHead>Margin</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-10 w-10 rounded-md overflow-hidden bg-muted">
-                          <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                          />
+                {filteredItems.map((item) => {
+                  const margin = item.price > 0 ? ((item.price - (item.costOfGoods || 0)) / item.price) * 100 : 0
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-10 w-10 rounded-md overflow-hidden bg-muted">
+                            <Image
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-1">{item.description}</p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          {item.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">{item.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.category}</TableCell>
-                    <TableCell>${item.price.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant={item.available ? "default" : "secondary"}>
-                        {item.available ? "Available" : "Out of Stock"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>${item.price.toFixed(2)}</TableCell>
+                      <TableCell>${(item.costOfGoods || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={margin > 30 ? "text-emerald-600" : "text-amber-600"}>
+                          {margin.toFixed(0)}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={item.available ? "default" : "secondary"}>
+                          {item.available ? "Available" : "Out of Stock"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" title="View Reviews" onClick={() => handleShowReviews(item)}>
+                          <Search className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -240,43 +271,68 @@ export default function MenuManagementPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Item Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Classic Burger"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="name">Item Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Classic Burger"
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={formData.categoryId}
+                  onValueChange={(value: string) => setFormData({ ...formData, categoryId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.icon} {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Sale Price ($)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cost">Cost of Goods ($)</Label>
+                <Input
+                  id="cost"
+                  type="number"
+                  step="0.01"
+                  value={formData.costOfGoods}
+                  onChange={(e) => setFormData({ ...formData, costOfGoods: Number(e.target.value) })}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={formData.categoryId}
-                onValueChange={(value: string) => setFormData({ ...formData, categoryId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            <div className="p-3 bg-muted rounded-md text-xs">
+              <p className="font-semibold mb-1">Profit Analysis:</p>
+              <div className="flex justify-between">
+                <span>Estimated Profit:</span>
+                <span className="font-bold text-emerald-600">${(formData.price - formData.costOfGoods).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Profit Margin:</span>
+                <span className="font-bold">{formData.price > 0 ? (((formData.price - formData.costOfGoods) / formData.price) * 100).toFixed(1) : 0}%</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="price">Price ($)</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-              />
-            </div>
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -287,7 +343,7 @@ export default function MenuManagementPage() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="available">Available</Label>
+              <Label htmlFor="available">Available (Live Update)</Label>
               <Switch
                 id="available"
                 checked={formData.available}
@@ -299,7 +355,44 @@ export default function MenuManagementPage() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>Save</Button>
+            <Button onClick={handleSave}>Save Item</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reviews: {selectedItemReviews.name}</DialogTitle>
+            <DialogDescription>Customer feedback history for this item.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[400px] overflow-auto">
+            {selectedItemReviews.reviews.map((rev, i) => {
+              const sentiment = rev.rating >= 4 ? "positive" : rev.rating >= 3 ? "neutral" : "negative"
+              const colors = {
+                positive: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800",
+                neutral: "bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800",
+                negative: "bg-rose-50 border-rose-200 dark:bg-rose-900/10 dark:border-rose-800"
+              }
+              return (
+                <div key={i} className={`p-3 border rounded-lg space-y-1 ${colors[sentiment]}`}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((_, j) => (
+                        <span key={j} className={j < rev.rating ? "text-amber-500" : "text-slate-300"}>★</span>
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{new Date(rev.date).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm italic">"{rev.comment}"</p>
+                </div>
+              )
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReviewDialogOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

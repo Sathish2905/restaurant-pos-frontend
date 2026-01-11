@@ -17,6 +17,7 @@ import {
   Calendar,
   ClipboardList,
   Plug,
+  TrendingUp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -27,6 +28,7 @@ const adminLinks = [
   { href: "/dashboard/tables", label: "Tables", icon: UtensilsCrossed },
   { href: "/dashboard/reservations", label: "Reservations", icon: Calendar },
   { href: "/dashboard/staff", label: "Staff", icon: Users },
+  { href: "/dashboard/financials", label: "Financials", icon: TrendingUp },
   { href: "/dashboard/integrations", label: "Integrations", icon: Plug },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ]

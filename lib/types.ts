@@ -1,3 +1,9 @@
+export interface ApiResponse<T> {
+    success: boolean
+    data: T
+    error?: string
+}
+
 export type UserRole = "admin" | "cashier" | "kitchen" | "staff"
 
 export const UserRoles = {
@@ -17,6 +23,11 @@ export interface User {
     status: "active" | "inactive"
 }
 
+export interface AuthResponse {
+    token: string
+    user: User
+}
+
 export interface Category {
     id: string
     name: string
@@ -31,6 +42,12 @@ export interface MenuItem {
     image: string
     available: boolean
     description?: string
+    costOfGoods?: number
+    reviews?: {
+        rating: number
+        comment: string
+        date: Date
+    }[]
 }
 
 export interface CartItem extends MenuItem {
@@ -114,4 +131,53 @@ export interface Setting {
     description?: string
     category: string
     type: "string" | "number" | "boolean"
+}
+
+export interface Expense {
+    id: string
+    category: "raw-materials" | "electricity" | "rent" | "salary" | "others"
+    amount: number
+    date: Date
+    description?: string
+}
+
+export interface WasteEntry {
+    id: string
+    itemId: string
+    itemName: string
+    quantity: number
+    reason: string
+    cost: number
+    date: Date
+    loggedBy: string
+}
+
+export interface DashboardStats {
+    todayRevenue: number
+    prevRevenue: number
+    revenueGrowth: number
+    liveOrders: number
+    completedToday: number
+    avgPrepTime: string
+    prepTimeTrend: string
+    activeStaff: number
+    staffTrend: string
+    pulseData: { time: string; incoming: number; completed: number }[]
+    topItems: (MenuItem & { margin: number })[]
+    bottomItems: (MenuItem & { margin: number })[]
+    outOfStockCount: number
+    badReviewsCount: number
+}
+
+export interface StaffPerformance {
+    name: string
+    prepTime: number
+    rating: number
+    orders: number
+}
+
+export interface AttendanceLog {
+    day: string
+    present: number
+    leave: number
 }

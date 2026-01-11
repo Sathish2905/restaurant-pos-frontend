@@ -47,6 +47,8 @@ export default function TablesPage() {
       ])
       setTables(fetchedTables)
       setFloors(fetchedFloors)
+      console.log("[TablesPage] Fetched tables:", fetchedTables)
+      console.log("[TablesPage] Fetched floors:", fetchedFloors)
     } catch (error) {
       console.error("Failed to fetch tables", error)
     } finally {
@@ -282,7 +284,10 @@ export default function TablesPage() {
                       Table {table.number}
                     </div>
                   </TableCell>
-                  <TableCell>{getFloorName(table.floorId)}</TableCell>
+                  <TableCell>
+                    {/* Handle potential property mismatch: floorId (frontend type) vs floor (backend) */}
+                    {getFloorName(table.floorId || (table as any).floor)}
+                  </TableCell>
                   <TableCell>{table.capacity} guests</TableCell>
                   <TableCell className="capitalize">{table.shape}</TableCell>
                   <TableCell>
