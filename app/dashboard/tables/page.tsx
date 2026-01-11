@@ -139,7 +139,7 @@ export default function TablesPage() {
     setEditingTable(table)
     setFormData({
       number: String(table.number),
-      floorId: table.floorId,
+      floorId: table.floorId || (table as any).floor || "",
       capacity: String(table.capacity),
       status: table.status,
       shape: table.shape,
