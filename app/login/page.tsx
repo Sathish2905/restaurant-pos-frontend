@@ -90,12 +90,12 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
 
-            {/* <div className="text-center text-sm pt-4">
+            <div className="text-center text-sm pt-4">
               <span className="text-muted-foreground">Don't have an account? </span>
               <Link href="/register" className="text-primary hover:underline font-medium">
                 Create an account
               </Link>
-            </div> */}
+            </div>
           </form>
         </CardContent>
       </Card>

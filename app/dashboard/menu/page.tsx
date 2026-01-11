@@ -36,6 +36,7 @@ export default function MenuManagementPage() {
     costOfGoods: 0,
     description: "",
     available: true,
+    image: "",
   })
 
   // Category State
@@ -75,6 +76,7 @@ export default function MenuManagementPage() {
       costOfGoods: item.costOfGoods || 0,
       description: item.description || "",
       available: item.available,
+      image: item.image || "",
     })
     setIsDialogOpen(true)
   }
@@ -88,6 +90,7 @@ export default function MenuManagementPage() {
       costOfGoods: 0,
       description: "",
       available: true,
+      image: "",
     })
     setIsDialogOpen(true)
   }
@@ -110,6 +113,7 @@ export default function MenuManagementPage() {
           costOfGoods: formData.costOfGoods,
           description: formData.description,
           available: formData.available,
+          image: formData.image,
         } as any)
 
         if (updatedItem) {
@@ -123,7 +127,7 @@ export default function MenuManagementPage() {
           costOfGoods: formData.costOfGoods,
           description: formData.description,
           available: formData.available,
-          image: "/placeholder.svg",
+          image: formData.image || "/placeholder.svg",
         } as any)
 
         if (newItem) {
@@ -131,8 +135,24 @@ export default function MenuManagementPage() {
         }
       }
       setIsDialogOpen(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save item", error)
+      alert(`Failed to save item: ${error.message || "Unknown error"}`)
+    }
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size checks: Image must be less than 5MB")
+        return
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result as string }))
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -299,6 +319,45 @@ export default function MenuManagementPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+
+              <div className="space-y-2 col-span-2">
+                <Label>Item Image</Label>
+                <div className="flex gap-4 items-start">
+                  <div className="relative h-20 w-20 rounded-md overflow-hidden bg-muted flex-shrink-0 border">
+                    {formData.image ? (
+                      <Image
+                        src={formData.image}
+                        alt="Preview"
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+                        No Image
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <Input
+                      placeholder="Image URL (https://...)"
+                      value={formData.image}
+                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                      className="text-sm"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">- OR -</span>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="text-sm cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="price">Sale Price ($)</Label>
                 <Input
