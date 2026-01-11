@@ -2,15 +2,26 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
 import { Setting } from "@/lib/types"
 import { toast } from "sonner"
-import { Loader2, Save } from "lucide-react"
+import { Loader2, Save, Plus } from "lucide-react"
 
 import { useSettings } from "@/lib/settings-context"
 
@@ -20,6 +31,14 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [changes, setChanges] = useState<Record<string, string>>({})
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [newSetting, setNewSetting] = useState({
+    key: "",
+    value: "",
+    description: "",
+    category: "",
+    type: "string" as Setting["type"],
+  })
 
   useEffect(() => {
     loadSettings()
@@ -29,20 +48,6 @@ export default function SettingsPage() {
     setIsLoading(true)
     try {
       const data = await api.getSettings()
-
-      // Ensure pos_image_preview exists
-      const hasImageSetting = data.some(s => s.key === "pos_image_preview")
-      if (!hasImageSetting) {
-        data.push({
-          id: "const-show-images",
-          key: "pos_image_preview",
-          value: "true",
-          category: "POS Display",
-          type: "boolean",
-          description: "Show product images in the POS menu grid"
-        })
-      }
-
       setSettings(data)
     } catch (error) {
       toast.error("Failed to load settings")
@@ -71,8 +76,14 @@ export default function SettingsPage() {
         return
       }
 
-      const success = await api.bulkUpdateSettings(settingsToUpdate)
-      if (success) {
+      // Update settings individually
+      const results = await Promise.all(
+        settingsToUpdate.map(({ id, value }) => api.updateSetting(id, value))
+      )
+
+      const allSuccessful = results.every(result => result !== null)
+
+      if (allSuccessful) {
         toast.success("Settings saved successfully")
         // Refresh global context so Navbar/Sidebar update immediately
         await refreshGlobalSettings()
@@ -86,6 +97,37 @@ export default function SettingsPage() {
       }
     } catch (error) {
       toast.error("Failed to save settings")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCreateSetting = async () => {
+    if (!newSetting.key || !newSetting.value || !newSetting.category) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const created = await api.createSetting(newSetting)
+      if (created) {
+        toast.success("Setting created successfully")
+        setSettings([...settings, created])
+        setIsCreateDialogOpen(false)
+        setNewSetting({
+          key: "",
+          value: "",
+          description: "",
+          category: "",
+          type: "string",
+        })
+        await refreshGlobalSettings()
+      } else {
+        throw new Error("Failed to create")
+      }
+    } catch (error) {
+      toast.error("Failed to create setting")
     } finally {
       setIsSaving(false)
     }
@@ -109,13 +151,23 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-bold">Settings</h1>
             <p className="text-muted-foreground">Manage your restaurant settings and preferences</p>
           </div>
-          <Button
-            onClick={() => handleSave()}
-            disabled={isSaving || Object.keys(changes).length === 0}
-          >
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save All Changes
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Setting
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+            <Button
+              onClick={() => handleSave()}
+              disabled={isSaving || Object.keys(changes).length === 0}
+            >
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save All Changes
+            </Button>
+          </div>
         </div>
 
         {categories.map((category) => (

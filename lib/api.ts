@@ -626,6 +626,23 @@ export const updateSetting = async (id: string, value: string): Promise<Setting 
     }
 }
 
+export const createSetting = async (settingData: Omit<Setting, 'id'>): Promise<Setting | null> => {
+    try {
+        const res = await fetch(`${API_URL}/settings`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify(settingData),
+        })
+        const data: ApiResponse<Setting> = await parseJson(res)
+        if (!res.ok || !data.success) throw new Error(data.error)
+        return data.data
+    } catch (error) {
+        console.error("Create setting error:", error)
+        return null
+    }
+}
+
+
 // Admin Extras
 export const getFinancialSummary = async (range: string): Promise<any> => {
     try {
@@ -694,6 +711,7 @@ export const api = {
     getStaffStats,
     getSettings,
     updateSetting,
+    createSetting,
     getFinancialSummary,
     getAIInsights,
     getMe,
