@@ -31,7 +31,7 @@ export function AuthenticatedLayout({ children }: { children: React.ReactNode })
             <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar isOpen={isSidebarOpen} />
-                <main className="flex-1 overflow-auto bg-muted/30 transition-all duration-300">
+                <main className="flex-1 flex flex-col overflow-hidden bg-muted/30 transition-all duration-300">
                     {children}
                 </main>
             </div>

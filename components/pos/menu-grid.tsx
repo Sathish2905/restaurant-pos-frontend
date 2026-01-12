@@ -66,7 +66,7 @@ export function MenuGrid({ items, categories, selectedCategory, onCategoryChange
       </div>
 
       {/* Menu Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {filteredItems.map((item) => (
           <Card
             key={item.id}
@@ -77,32 +77,63 @@ export function MenuGrid({ items, categories, selectedCategory, onCategoryChange
             onClick={() => item.available && onAddToCart({ ...item, quantity: 1 })}
           >
             <CardContent className="p-0">
-              {showImages && (
-                <div className="relative aspect-square bg-muted rounded-t-lg overflow-hidden">
-                  <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
-                  {!item.available && (
-                    <Badge className="absolute top-2 right-2" variant="destructive">
-                      Out of Stock
+              {showImages ? (
+                <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+                  {/* Semi-transparent image background */}
+                  <Image
+                    src={item.image || "/placeholder.svg"}
+                    alt={item.name}
+                    fill
+                    className="object-cover opacity-50"
+                  />
+
+                  {/* Overlay content */}
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    {/* Top section - Out of stock badge */}
+                    <div className="flex justify-end">
+                      {!item.available && (
+                        <Badge variant="destructive" className="text-xs">
+                          Out of Stock
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Bottom section - Item details */}
+                    <div className="space-y-1 bg-black/40 backdrop-blur-sm p-3 -mx-4 -mb-4 mt-auto">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-xs sm:text-sm leading-tight line-clamp-2 text-white shadow-sm">
+                          {item.name}
+                        </h3>
+                        <Badge variant="default" className="shrink-0 font-bold bg-primary text-primary-foreground text-[10px] h-5">
+                          ${item.price.toFixed(2)}
+                        </Badge>
+                      </div>
+                      {item.description && (
+                        <p className="text-[10px] text-gray-100 line-clamp-1 font-medium italic opacity-90">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="font-semibold text-sm leading-tight line-clamp-2">{item.name}</h3>
+                      {!item.available && (
+                        <Badge variant="destructive" className="w-fit text-[10px] h-4 px-1">
+                          Out of Stock
+                        </Badge>
+                      )}
+                    </div>
+                    <Badge variant="secondary" className="shrink-0">
+                      ${item.price.toFixed(2)}
                     </Badge>
-                  )}
+                  </div>
+                  {item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
                 </div>
               )}
-              <div className="p-4 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="font-semibold text-sm leading-tight line-clamp-2">{item.name}</h3>
-                    {!showImages && !item.available && (
-                      <Badge variant="destructive" className="w-fit text-[10px] h-4 px-1">
-                        Out of Stock
-                      </Badge>
-                    )}
-                  </div>
-                  <Badge variant="secondary" className="shrink-0">
-                    ${item.price.toFixed(2)}
-                  </Badge>
-                </div>
-                {item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
-              </div>
             </CardContent>
           </Card>
         ))}

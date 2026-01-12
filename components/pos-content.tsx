@@ -163,8 +163,8 @@ export function POSContent() {
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden">
-      <div className="flex-1 overflow-auto relative">
+    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-background h-full">
+      <div className="flex-1 overflow-auto relative min-h-0 h-full">
         {showTableSelection ? (
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">

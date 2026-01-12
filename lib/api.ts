@@ -24,6 +24,66 @@ export function getHeaders(): HeadersInit {
     return headers
 }
 
+class RequestDeduplicator {
+    private inFlight = new Map<string, Promise<any>>()
+    private cache = new Map<string, { data: any, timestamp: number }>()
+    private CACHE_TTL = 30000 // 30 seconds for static data
+
+    async deduplicate<T>(key: string, fetcher: () => Promise<T>, useCache = false): Promise<T> {
+        if (useCache && this.cache.has(key)) {
+            const cached = this.cache.get(key)!
+            if (Date.now() - cached.timestamp < this.CACHE_TTL) {
+                console.log(`[API] Returning cached data for: ${key}`)
+                return cached.data as T
+            }
+        }
+
+        if (this.inFlight.has(key)) {
+            console.log(`[API] Deduplicating request: ${key}`)
+            return this.inFlight.get(key) as Promise<T>
+        }
+
+        const promise = fetcher().then(data => {
+            if (useCache) {
+                this.cache.set(key, { data, timestamp: Date.now() })
+            }
+            return data
+        }).finally(() => {
+            this.inFlight.delete(key)
+        })
+
+        this.inFlight.set(key, promise)
+        return promise
+    }
+}
+
+const deduplicator = new RequestDeduplicator()
+
+/**
+ * Robustly normalizes an ID from various potential formats (string, number, ObjectID, or populated object)
+ */
+export function normalizeId(id: any): string {
+    if (!id) return ""
+    if (typeof id === "string") return id
+    if (typeof id === "number") return String(id)
+    if (typeof id === "object") {
+        return id._id || id.id || (id.toString() !== "[object Object]" ? id.toString() : "")
+    }
+    return String(id)
+}
+
+export function normalizeOrder(order: any): Order {
+    if (!order) return order
+    return {
+        ...order,
+        id: normalizeId(order),
+        items: (order.items || []).map((item: any) => ({
+            ...item,
+            id: normalizeId(item.menuItem || item.id || item)
+        }))
+    }
+}
+
 /**
  * Helper to handle JSON parsing and log errors if response is not JSON (e.g. HTML 404)
  */
@@ -126,17 +186,19 @@ export const register = async (userData: any): Promise<User | null> => {
 
 // Orders
 export const getOrders = async (): Promise<Order[]> => {
-    try {
-        const res = await fetch(`${API_URL}/orders`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<Order[]> = await parseJson(res)
-        if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
-    } catch (error) {
-        console.error("Get orders error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getOrders", async () => {
+        try {
+            const res = await fetch(`${API_URL}/orders`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<Order[]> = await parseJson(res)
+            if (!res.ok || !data.success) throw new Error(data.error)
+            return (data.data || []).map(normalizeOrder)
+        } catch (error) {
+            console.error("Get orders error:", error)
+            return []
+        }
+    })
 }
 
 export const createOrder = async (orderData: any): Promise<Order | null> => {
@@ -148,7 +210,7 @@ export const createOrder = async (orderData: any): Promise<Order | null> => {
         })
         const data: ApiResponse<Order> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return normalizeOrder(data.data)
     } catch (error) {
         console.error("Create order error:", error)
         return null
@@ -180,7 +242,7 @@ export const updateOrder = async (id: string, orderData: any): Promise<Order | n
         })
         const data: ApiResponse<Order> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return normalizeOrder(data.data)
     } catch (error) {
         console.error("Update order error:", error)
         return null
@@ -189,17 +251,22 @@ export const updateOrder = async (id: string, orderData: any): Promise<Order | n
 
 // Reservations
 export const getReservations = async (): Promise<Reservation[]> => {
-    try {
-        const res = await fetch(`${API_URL}/reservations`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<Reservation[]> = await parseJson(res)
-        if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
-    } catch (error) {
-        console.error("Get reservations error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getReservations", async () => {
+        try {
+            const res = await fetch(`${API_URL}/reservations`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<Reservation[]> = await parseJson(res)
+            if (!res.ok || !data.success) throw new Error(data.error)
+            return (data.data || []).map(res => ({
+                ...res,
+                id: normalizeId(res)
+            }))
+        } catch (error) {
+            console.error("Get reservations error:", error)
+            return []
+        }
+    })
 }
 
 export const createReservation = async (reservationData: any): Promise<Reservation | null> => {
@@ -236,17 +303,23 @@ export const updateReservationStatus = async (id: string, status: string): Promi
 
 // Menu
 export const getMenuItems = async (): Promise<MenuItem[]> => {
-    try {
-        const res = await fetch(`${API_URL}/menu`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<MenuItem[]> = await parseJson(res)
-        if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
-    } catch (error) {
-        console.error("Get menu items error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getMenuItems", async () => {
+        try {
+            const res = await fetch(`${API_URL}/menu`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<MenuItem[]> = await parseJson(res)
+            if (!res.ok || !data.success) throw new Error(data.error)
+            return (data.data || []).map(item => ({
+                ...item,
+                id: normalizeId(item),
+                category: normalizeId(item.category)
+            }))
+        } catch (error) {
+            console.error("Get menu items error:", error)
+            return []
+        }
+    })
 }
 
 export const createMenuItem = async (itemData: any): Promise<MenuItem | null> => {
@@ -258,7 +331,10 @@ export const createMenuItem = async (itemData: any): Promise<MenuItem | null> =>
         })
         const data: ApiResponse<MenuItem> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return {
+            ...data.data,
+            id: (data.data as any)._id || data.data.id || (data.data as any).id
+        }
     } catch (error) {
         console.error("Create menu item error:", error)
         return null
@@ -274,7 +350,10 @@ export const updateMenuItem = async (id: string, itemData: any): Promise<MenuIte
         })
         const data: ApiResponse<MenuItem> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return {
+            ...data.data,
+            id: (data.data as any)._id || data.data.id || (data.data as any).id
+        }
     } catch (error) {
         console.error("Update menu item error:", error)
         return null
@@ -297,17 +376,22 @@ export const deleteMenuItem = async (id: string): Promise<boolean> => {
 
 // Categories
 export const getCategories = async (): Promise<any[]> => {
-    try {
-        const res = await fetch(`${API_URL}/categories`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<any[]> = await parseJson(res)
-        if (!res.ok || !data.success) return []
-        return data.data
-    } catch (error) {
-        console.error("Get categories error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getCategories", async () => {
+        try {
+            const res = await fetch(`${API_URL}/categories`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<any[]> = await parseJson(res)
+            if (!res.ok || !data.success) return []
+            return (data.data || []).map(category => ({
+                ...category,
+                id: (category as any)._id || category.id || (category as any).id
+            }))
+        } catch (error) {
+            console.error("Get categories error:", error)
+            return []
+        }
+    }, true) // Enable cache
 }
 
 export const createCategory = async (categoryData: any): Promise<any | null> => {
@@ -319,7 +403,10 @@ export const createCategory = async (categoryData: any): Promise<any | null> => 
         })
         const data: ApiResponse<any> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return {
+            ...data.data,
+            id: (data.data as any)._id || data.data.id || (data.data as any).id
+        }
     } catch (error) {
         console.error("Create category error:", error)
         return null
@@ -328,32 +415,43 @@ export const createCategory = async (categoryData: any): Promise<any | null> => 
 
 // Floors
 export const getFloors = async (): Promise<Floor[]> => {
-    try {
-        const res = await fetch(`${API_URL}/floors`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<Floor[]> = await parseJson(res)
-        if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
-    } catch (error) {
-        console.error("Get floors error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getFloors", async () => {
+        try {
+            const res = await fetch(`${API_URL}/floors`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<Floor[]> = await parseJson(res)
+            if (!res.ok || !data.success) throw new Error(data.error)
+            return (data.data || []).map(floor => ({
+                ...floor,
+                id: normalizeId(floor)
+            }))
+        } catch (error) {
+            console.error("Get floors error:", error)
+            return []
+        }
+    }, true) // Enable cache
 }
 
 // Tables
 export const getTables = async (): Promise<Table[]> => {
-    try {
-        const res = await fetch(`${API_URL}/tables`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<Table[]> = await parseJson(res)
-        if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
-    } catch (error) {
-        console.error("Get tables error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getTables", async () => {
+        try {
+            const res = await fetch(`${API_URL}/tables`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<Table[]> = await parseJson(res)
+            if (!res.ok || !data.success) throw new Error(data.error)
+            return (data.data || []).map(table => ({
+                ...table,
+                id: normalizeId(table),
+                floorId: normalizeId(table.floorId || (table as any).floor)
+            }))
+        } catch (error) {
+            console.error("Get tables error:", error)
+            return []
+        }
+    })
 }
 
 export const updateTable = async (id: string, tableData: any): Promise<Table | null> => {
@@ -365,7 +463,12 @@ export const updateTable = async (id: string, tableData: any): Promise<Table | n
         })
         const data: ApiResponse<Table> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        const table = data.data
+        return {
+            ...table,
+            id: normalizeId(table),
+            floorId: normalizeId(table.floorId || (table as any).floor)
+        }
     } catch (error) {
         console.error("Update table error:", error)
         return null
@@ -381,7 +484,12 @@ export const createTable = async (tableData: any): Promise<Table | null> => {
         })
         const data: ApiResponse<Table> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        const table = data.data
+        return {
+            ...table,
+            id: normalizeId(table),
+            floorId: normalizeId(table.floorId || (table as any).floor)
+        }
     } catch (error) {
         console.error("Create table error:", error)
         return null
@@ -404,17 +512,22 @@ export const deleteTable = async (id: string): Promise<boolean> => {
 
 // Users (Staff)
 export const getUsers = async (): Promise<User[]> => {
-    try {
-        const res = await fetch(`${API_URL}/users`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<User[]> = await parseJson(res)
-        if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
-    } catch (error) {
-        console.error("Get users error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getUsers", async () => {
+        try {
+            const res = await fetch(`${API_URL}/users`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<User[]> = await parseJson(res)
+            if (!res.ok || !data.success) throw new Error(data.error)
+            return (data.data || []).map(user => ({
+                ...user,
+                id: normalizeId(user)
+            }))
+        } catch (error) {
+            console.error("Get users error:", error)
+            return []
+        }
+    })
 }
 
 export const createUser = async (userData: any): Promise<User | null> => {
@@ -426,7 +539,10 @@ export const createUser = async (userData: any): Promise<User | null> => {
         })
         const data: ApiResponse<User> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return {
+            ...data.data,
+            id: (data.data as any)._id || data.data.id || (data.data as any).id
+        }
     } catch (error) {
         console.error("Create user error:", error)
         return null
@@ -442,7 +558,10 @@ export const updateUser = async (id: string, userData: any): Promise<User | null
         })
         const data: ApiResponse<User> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return {
+            ...data.data,
+            id: (data.data as any)._id || data.data.id || (data.data as any).id
+        }
     } catch (error) {
         console.error("Update user error:", error)
         return null
@@ -502,7 +621,10 @@ export const createExpense = async (expenseData: any): Promise<Expense | null> =
         })
         const data: ApiResponse<Expense> = await parseJson(res)
         if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
+        return {
+            ...data.data,
+            id: (data.data as any)._id || data.data.id || (data.data as any).id
+        }
     } catch (error) {
         console.error("Create expense error:", error)
         return null
@@ -597,17 +719,19 @@ export const getStaffStats = async (): Promise<any> => {
 }
 
 export const getSettings = async (): Promise<Setting[]> => {
-    try {
-        const res = await fetch(`${API_URL}/settings`, {
-            headers: getHeaders(),
-        })
-        const data: ApiResponse<Setting[]> = await parseJson(res)
-        if (!res.ok || !data.success) throw new Error(data.error)
-        return data.data
-    } catch (error) {
-        console.error("Get settings error:", error)
-        return []
-    }
+    return deduplicator.deduplicate("getSettings", async () => {
+        try {
+            const res = await fetch(`${API_URL}/settings`, {
+                headers: getHeaders(),
+            })
+            const data: ApiResponse<Setting[]> = await parseJson(res)
+            if (!res.ok || !data.success) throw new Error(data.error)
+            return data.data
+        } catch (error) {
+            console.error("Get settings error:", error)
+            return []
+        }
+    })
 }
 
 export const updateSetting = async (id: string, value: string): Promise<Setting | null> => {

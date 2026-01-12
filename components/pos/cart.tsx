@@ -61,7 +61,12 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
 
   const handleCompleteOrder = async (status: OrderStatus = "new", options?: { print?: boolean; ebill?: boolean }) => {
     const orderData = {
-      items: cart,
+      items: cart.map(item => ({
+        menuItem: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
       subtotal,
       total,
       tax,
@@ -147,7 +152,7 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
 
   return (
     <>
-      <Card className="w-[500px] border-l rounded-none flex flex-col h-full">
+      <Card className="w-full lg:w-[380px] xl:w-[450px] border-l rounded-none flex flex-col h-full shrink-0 shadow-lg bg-card">
         <CardHeader className="border-b space-y-4">
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
@@ -317,18 +322,18 @@ export function Cart({ cart, onUpdateQuantity, onClearCart, selectedTable, onSel
 
           <div className="w-full grid grid-cols-4 gap-1">
             <Button
-              className="flex-1 text-[10px] h-9 px-0"
+              className="flex-1 text-[10px] h-9 px-1"
               onClick={() => handleCompleteOrder("new")}
               disabled={cart.length === 0}
             >
               Save
             </Button>
             <Button
-              className="flex-1 text-[10px] h-9 px-0"
+              className="flex-1 text-[10px] h-9 px-1"
               onClick={() => handleCompleteOrder("new", { print: true })}
               disabled={cart.length === 0}
             >
-              Save & Print
+              Print
             </Button>
             <Button
               variant="outline"

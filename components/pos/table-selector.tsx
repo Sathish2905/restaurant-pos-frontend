@@ -60,7 +60,11 @@ export function TableSelector({
     return (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {tables
-                .filter((t) => t.floorId === selectedFloorId)
+                .filter((t) => {
+                    const fid = (t as any).floorId || (t as any).floor;
+                    const tableFloorId = typeof fid === 'object' ? (fid as any)?._id || (fid as any)?.id : String(fid || '');
+                    return String(tableFloorId) === String(selectedFloorId);
+                })
                 .map((table) => {
                     const order = getTableOrder(table.id)
                     const hasOrder = !!order

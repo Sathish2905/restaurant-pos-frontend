@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth-context"
 import { ThemeProvider } from "@/lib/theme-provider"
 
 import { SettingsProvider } from "@/lib/settings-context"
+import { Toaster } from "sonner"
 
 import { api } from "@/lib/api"
 
@@ -46,6 +47,7 @@ export default function RootLayout({
             <SettingsProvider>{children}</SettingsProvider>
           </AuthProvider>
         </ThemeProvider>
+        <Toaster position="top-right" richColors />
         <Analytics />
       </body>
     </html>
