@@ -249,6 +249,35 @@ export const updateOrder = async (id: string, orderData: any): Promise<Order | n
     }
 }
 
+export const updateOrderItemStatus = async (orderId: string, itemId: string, isReady: boolean): Promise<Order | null> => {
+    try {
+        const res = await fetch(`${API_URL}/orders/${orderId}/items/${itemId}/status`, {
+            method: "PATCH",
+            headers: getHeaders(),
+            body: JSON.stringify({ isReady }),
+        })
+        const data: ApiResponse<Order> = await parseJson(res)
+        if (!res.ok || !data.success) throw new Error(data.error)
+        return normalizeOrder(data.data)
+    } catch (error) {
+        console.error("Update item status error:", error)
+        return null
+    }
+}
+
+export const pingWaiter = async (orderId: string): Promise<boolean> => {
+    try {
+        const res = await fetch(`${API_URL}/orders/${orderId}/ping-waiter`, {
+            method: "POST",
+            headers: getHeaders(),
+        })
+        return res.ok
+    } catch (error) {
+        console.error("Ping waiter error:", error)
+        return false
+    }
+}
+
 // Reservations
 export const getReservations = async (): Promise<Reservation[]> => {
     return deduplicator.deduplicate("getReservations", async () => {

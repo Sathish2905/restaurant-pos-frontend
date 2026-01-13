@@ -48,10 +48,16 @@ export interface MenuItem {
         comment: string
         date: Date
     }[]
+    platingMediaUrl?: string
+    isFavoriteKitchen?: boolean
 }
 
 export interface CartItem extends MenuItem {
     quantity: number
+    notes?: string
+    isReady?: boolean
+    isPreparing?: boolean
+    startTime?: Date
 }
 
 export interface Table {

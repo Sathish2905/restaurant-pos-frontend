@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { api, normalizeId } from "./api"
+import { api, normalizeId, normalizeOrder } from "./api"
 import { Order, Table } from "./types"
 import { socket } from "./socket"
 import { toast } from "sonner"
@@ -40,10 +40,7 @@ export function useOrderUpdates(onUpdate?: (orders: Order[]) => void) {
 
     const handleOrderCreated = (newOrder: any) => {
       console.log("[Socket] Order created event:", newOrder)
-      const normalizedOrder = {
-        ...newOrder,
-        id: normalizeId(newOrder)
-      }
+      const normalizedOrder = normalizeOrder(newOrder)
       setOrders((prev) => [normalizedOrder, ...prev])
       toast.success("New Order received!", {
         description: `Order #${normalizedOrder.id.slice(-4)} for Table ${normalizedOrder.tableNumber || 'N/A'}`
@@ -52,10 +49,7 @@ export function useOrderUpdates(onUpdate?: (orders: Order[]) => void) {
 
     const handleOrderUpdated = (updatedOrder: any) => {
       console.log("[Socket] Order updated event:", updatedOrder)
-      const normalizedUpdate = {
-        ...updatedOrder,
-        id: normalizeId(updatedOrder)
-      }
+      const normalizedUpdate = normalizeOrder(updatedOrder)
       setOrders((prev) =>
         prev.map((o) => (o.id === normalizedUpdate.id ? { ...o, ...normalizedUpdate } : o))
       )
